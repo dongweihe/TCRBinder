@@ -31,7 +31,7 @@ $ cd THLAnet
 ```
 
 # Dataset description
-The raw interaction data were compiled from publicly accessible resources, including VDJdb (https://vdjdb.cdr3.net/), IEDB (https://www.iedb.org/), McPAS-TCR (http://friedmanlab.weizmann.ac.il/McPAS-TCR/), OTS (https://opig.stats.ox.ac.uk/webapps/ots), and the 10x Genomics datasets (https://www.10xgenomics.com/datasets).
+<!-- The raw interaction data were compiled from publicly accessible resources, including VDJdb (https://vdjdb.cdr3.net/), IEDB (https://www.iedb.org/), McPAS-TCR (http://friedmanlab.weizmann.ac.il/McPAS-TCR/), OTS (https://opig.stats.ox.ac.uk/webapps/ots), and the 10x Genomics datasets (https://www.10xgenomics.com/datasets). -->
 
 By default, you can run our model using the immunogenicity dataset with:
 ```

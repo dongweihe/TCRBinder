@@ -55,11 +55,11 @@ python finetuning_main.py --config ./config/common/finetuning.json
 Before running the task, please timely replace the file paths for `"tcr_tokenizer_dir"`, `"beta_dir"`, and `"alpha_dir"` in the `finetuning.json` configuration file.
 
 ## Evaluation on External Datasets
-After fine-tuning, you can evaluate external datasets. Before evaluation, please copy the absolute path of `model_best.pth` from the `../Result_PHT/checkpoints/` directory to the `"discriminator_resume"` field in the `generation.json` file. Then, replace `beta_dir` with `../Result_beta/checkpoints/BERT-Pretrain-common-MAA-NGPUs/XXXX_XXXXXX/`, replace `"alpha_dir"` with `../Result_alpha/checkpoints/BERT-Pretrain-common-MAA-NGPUs/XXXX_XXXXXX/`, and update the corresponding `"tcr_tokenizer_dir"`, `"alpha_dir"`, and `"beta_dir"`.
+After fine-tuning, you can evaluate external datasets. Before evaluation, please copy the absolute path of `model_best.pth` from the `../Result_PHT/checkpoints/` directory to the `"discriminator_resume"` field in the `generalization.json` file. Then, replace `beta_dir` with `../Result_beta/checkpoints/BERT-Pretrain-common-MAA-NGPUs/XXXX_XXXXXX/`, replace `"alpha_dir"` with `../Result_alpha/checkpoints/BERT-Pretrain-common-MAA-NGPUs/XXXX_XXXXXX/`, and update the corresponding `"tcr_tokenizer_dir"`, `"alpha_dir"`, and `"beta_dir"`.
 
-The generation command for TCRBinder is:
+The generalization command for TCRBinder is:
 ```
-python generation.py --config ./config/common/generation.json
+python generalization.py --config ./config/common/generalization.json
 ```
 
 # Acknowledgments

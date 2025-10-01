@@ -2,7 +2,7 @@
 <p align="center">
 <img src="https://github.com/dongweihe/TCRBinder/blob/main/TCRBinder.png" align="middle" height="100%" width="100%" />
 </p >
-<!-- Deciphering how human T cells recognise peptide–HLA (pHLA) complexes underpins next-generation vaccines and personalised immunotherapies, yet extreme sequence diversity and paired chains interdependence still hamper reliable in silico prediction of T-cell receptor (TCR) specificity. To overcome these hurdles we built TCRBinder, a paired chain aware deep model with a multi-branch encoder that routes each molecular component through a dedicated transformer, which allows ESM2 to capture contextual signals in both HLA pseudo-sequences and antigenic peptides, while a rotary-embedding RoFormer simultaneously processes the TCR $\alpha$ and $\beta$ chains so that cross-chain coherence is enforced to emulate Peptide–HLA–TCR crosstalk and expose residue level contact motifs. Across peptide–HLA–TCR and peptide–TCR benchmarks the model delivered state-of-the-art accuracy (AUC-ROC = 0.95, AUPR = 0.86 for the ternary task) and remained superior on multiple independent and external datasets. Its affinity scores tightly tracked clonal expansion dynamics and, on a large SARS-CoV-2 repertoire containing wholly unseen peptides, improved predictive precision by more than ten percentage points over leading alternatives. Moreover, TCRBinder’s outputs mirrored clinical response to immune checkpoint blockade in two patient cohorts and provided mechanistic insight by pinpointing contact hot-spots and quantifying residue contributions to binding probability. These capabilities position TCRBinder as a versatile tool for rational antigen discovery, immunotherapy stratification and neoantigen vaccine design. -->
+Deciphering how human T cells recognise peptide–HLA (pHLA) complexes underpins next-generation vaccines and personalised immunotherapies, yet extreme sequence diversity and paired chains interdependence still hamper reliable in silico prediction of T-cell receptor (TCR) specificity. To overcome these hurdles we built TCRBinder, a paired chain aware deep model with a multi-branch encoder that routes each molecular component through a dedicated transformer, which allows ESM2 to capture contextual signals in both HLA pseudo-sequences and antigenic peptides, while a rotary-embedding RoFormer simultaneously processes the TCR $\alpha$ and $\beta$ chains so that cross-chain coherence is enforced to emulate Peptide–HLA–TCR crosstalk and expose residue level contact motifs. Across peptide–HLA–TCR and peptide–TCR benchmarks the model delivered state-of-the-art accuracy (AUC-ROC = 0.95, AUPR = 0.86 for the ternary task) and remained superior on multiple independent and external datasets. Its affinity scores tightly tracked clonal expansion dynamics and, on a large SARS-CoV-2 repertoire containing wholly unseen peptides, improved predictive precision by more than ten percentage points over leading alternatives. Moreover, TCRBinder’s outputs mirrored clinical response to immune checkpoint blockade in two patient cohorts and provided mechanistic insight by pinpointing contact hot-spots and quantifying residue contributions to binding probability. These capabilities position TCRBinder as a versatile tool for rational antigen discovery, immunotherapy stratification and neoantigen vaccine design.
 
 # The environment of TCRBinder
 ```
@@ -25,22 +25,45 @@ $ conda activate TCRBinder
 # install requried python dependencies
 $ pip install -r requirements.txt
 
-# clone the source code of THLAnet
-$ git clone https://github.com/
-$ cd THLAnet
+# clone the source code of TCRBinder
+$ git clone https://github.com/dongweihe/TCRBinder.git
+$ cd TCRBinder
 ```
 
 # Dataset description
-<!-- The raw interaction data were compiled from publicly accessible resources, including VDJdb (https://vdjdb.cdr3.net/), IEDB (https://www.iedb.org/), McPAS-TCR (http://friedmanlab.weizmann.ac.il/McPAS-TCR/), OTS (https://opig.stats.ox.ac.uk/webapps/ots), and the 10x Genomics datasets (https://www.10xgenomics.com/datasets). -->
+The raw interaction data were compiled from publicly accessible resources, including VDJdb (https://vdjdb.cdr3.net/), IEDB (https://www.iedb.org/), McPAS-TCR (http://friedmanlab.weizmann.ac.il/McPAS-TCR/), OTS (https://opig.stats.ox.ac.uk/webapps/ots), and the 10x Genomics datasets (https://www.10xgenomics.com/datasets).
 
-By default, you can run our model using the immunogenicity dataset with:
+# Training and Usage Guide
+
+We separately pre-train two RoFormer models on TCR α chain and β chain sequences. Then, utilize pHLA-TCR (pHLA-TCR) binding data to fine-tune these models, finally forming the TCRBinder model.
+
+## Pre-training RoFormer Models
+The commands for pre-training two RoFormer models on TCR α chain and β chain sequences are:
 ```
-python finetuning_er_main.py --config ./config/common/TCRBinder.json
+python pretrain_main.py --config ./config/common/pretrain_alpha.json
+python pretrain_main.py --config ./config/common/pretrain_beta.json
+```
+After training completes, the pre-trained ReceptorBERT models will be saved in `../Result_alpha/checkpoints/Pretrain/XXXX_XXXXXX` and `../Result_beta/checkpoints/Pretrain/XXXX_XXXXXX` folders, where `XXXX_XXXXXX` is the training timestamp.
 
+Since we use ESM2 model parameters as the antigen model, you need to download the ESM2 model parameters from Hugging Face (https://huggingface.co/facebook/esm2_t30_150M_UR50D/tree/main) and place them into the `/Code/esm2/esm2_150m` directory.
+
+## Fine-tuning TCRBinder
+You can use our provided simple example dataset (“Sample.csv”) to run our model. The training command for TCRBinder is:
+```
+python finetuning_main.py --config ./config/common/finetuning.json
+```
+Before running the task, please timely replace the file paths for `"tcr_tokenizer_dir"`, `"beta_dir"`, and `"alpha_dir"` in the `finetuning.json` configuration file.
+
+## Evaluation on External Datasets
+After fine-tuning, you can evaluate external datasets. Before evaluation, please copy the absolute path of `model_best.pth` from the `../Result_PHT/checkpoints/` directory to the `"discriminator_resume"` field in the `generation.json` file. Then, replace `beta_dir` with `../Result_beta/checkpoints/BERT-Pretrain-common-MAA-NGPUs/XXXX_XXXXXX/`, replace `"alpha_dir"` with `../Result_alpha/checkpoints/BERT-Pretrain-common-MAA-NGPUs/XXXX_XXXXXX/`, and update the corresponding `"tcr_tokenizer_dir"`, `"alpha_dir"`, and `"beta_dir"`.
+
+The generation command for TCRBinder is:
+```
+python generation.py --config ./config/common/generation.json
 ```
 
 # Acknowledgments
 
 If you have any questions, please contact us via email:
 
-[Weihe Dong](mail to:WeiheDong@stu.hit.edu.cn)
+[Weihe Dong](mailto:WeiheDong@stu.hit.edu.cn)

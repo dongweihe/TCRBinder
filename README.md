@@ -43,7 +43,7 @@ The commands for pre-training two RoFormer models on TCR α chain and β chain s
 python pretrain_main.py --config ./config/common/pretrain_alpha.json
 python pretrain_main.py --config ./config/common/pretrain_beta.json
 ```
-After training completes, the pre-trained ReceptorBERT models will be saved in `../Result_alpha/checkpoints/Pretrain/XXXX_XXXXXX` and `../Result_beta/checkpoints/Pretrain/XXXX_XXXXXX` folders, where `XXXX_XXXXXX` is the training timestamp.
+After training completes, the pre-trained Roformer models will be saved in `../Result_alpha/checkpoints/Pretrain/XXXX_XXXXXX` and `../Result_beta/checkpoints/Pretrain/XXXX_XXXXXX` folders, where `XXXX_XXXXXX` is the training timestamp.
 
 Since we use ESM2 model parameters as the antigen model, you need to download the ESM2 model parameters from Hugging Face (https://huggingface.co/facebook/esm2_t30_150M_UR50D/tree/main) and place them into the `/Code/esm2/esm2_150m` directory.
 
@@ -55,7 +55,7 @@ python finetuning_main.py --config ./config/common/finetuning.json
 Before running the task, please timely replace the file paths for `"tcr_tokenizer_dir"`, `"beta_dir"`, and `"alpha_dir"` in the `finetuning.json` configuration file.
 
 ## Evaluation on External Datasets
-After fine-tuning, you can evaluate external datasets. Before evaluation, please copy the absolute path of `model_best.pth` from the `../Result_PHT/checkpoints/` directory to the `"discriminator_resume"` field in the `generalization.json` file. Then, replace `beta_dir` with `../Result_beta/checkpoints/BERT-Pretrain-common-MAA-NGPUs/XXXX_XXXXXX/`, replace `"alpha_dir"` with `../Result_alpha/checkpoints/BERT-Pretrain-common-MAA-NGPUs/XXXX_XXXXXX/`, and update the corresponding `"tcr_tokenizer_dir"`, `"alpha_dir"`, and `"beta_dir"`.
+After fine-tuning, you can evaluate external datasets. Before evaluation, please copy the absolute path of `model_best.pth` from the `../Result_PHT/checkpoints/` directory to the `"discriminator_resume"` field in the `generalization.json` file. Then, replace `beta_dir` with `../Result_beta/checkpoints/Pretrain/XXXX_XXXXXX/`, replace `"alpha_dir"` with `../Result_alpha/checkpoints/Pretrain/XXXX_XXXXXX/`, and update the corresponding `"tcr_tokenizer_dir"`, `"alpha_dir"`, and `"beta_dir"`.
 
 The generalization command for TCRBinder is:
 ```

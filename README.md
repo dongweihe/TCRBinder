@@ -38,6 +38,7 @@ The raw interaction data were compiled from publicly accessible resources, inclu
 We separately pre-train two RoFormer models on TCR α chain and β chain sequences. Then, utilize pHLA-TCR (pHLA-TCR) binding data to fine-tune these models, finally forming the TCRBinder model.
 
 ## Pre-training RoFormer Models
+You need to download the files “ProcessedData/CDR3_Alpha.csv” and “ProcessedData/CDR3_Beta.csv” from Zenodo (https://doi.org/10.5281/zenodo.14282419), and place them into the “/ProcessedData” folder.
 The commands for pre-training two RoFormer models on TCR α chain and β chain sequences are:
 ```
 python pretrain_main.py --config ./config/common/pretrain_alpha.json
@@ -45,9 +46,8 @@ python pretrain_main.py --config ./config/common/pretrain_beta.json
 ```
 After training completes, the pre-trained Roformer models will be saved in `../Result_alpha/checkpoints/Pretrain/XXXX_XXXXXX` and `../Result_beta/checkpoints/Pretrain/XXXX_XXXXXX` folders, where `XXXX_XXXXXX` is the training timestamp.
 
-Since we use ESM2 model parameters as the antigen model, you need to download the ESM2 model parameters from Hugging Face (https://huggingface.co/facebook/esm2_t30_150M_UR50D/tree/main) and place them into the `/Code/esm2/esm2_150m` directory.
-
 ## Fine-tuning TCRBinder
+Since we use ESM2 model parameters as the antigen model, you need to download the ESM2 model parameters from Hugging Face (https://huggingface.co/facebook/esm2_t30_150M_UR50D/tree/main) and place them into the `/Code/esm2/esm2_150m` directory.
 You can use our provided simple example dataset (“Sample.csv”) to run our model. The training command for TCRBinder is:
 ```
 python finetuning_main.py --config ./config/common/finetuning.json

@@ -35,7 +35,7 @@ The raw interaction data were compiled from publicly accessible resources, inclu
 
 # Training and Usage Guide
 
-We separately pre-train two RoFormer models on TCR α chain and β chain sequences. Then, utilize pHLA-TCR (pHLA-TCR) binding data to fine-tune these models, finally forming the TCRBinder model.
+We separately pre-train two RoFormer models on TCR α chain and β chain sequences. Then, utilize pHLA-TCR (PHT) binding data to fine-tune these models, finally forming the TCRBinder model.
 
 ## Pre-training RoFormer Models
 You need to download the files “ProcessedData/CDR3_Alpha.csv” and “ProcessedData/CDR3_Beta.csv” from Zenodo (https://doi.org/10.5281/zenodo.14282419), and place them into the “/ProcessedData” folder.

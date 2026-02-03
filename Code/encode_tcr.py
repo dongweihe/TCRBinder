@@ -21,8 +21,8 @@ ID_COL    = "ID"
 ENCODE_ALPHA = True
 ENCODE_BETA  = True
 
-BETA_DIR  = "./Result_beta/checkpoints/BERT-Pretrain-common-MAA-NGPUs/XXXX_XXXXXX"
-ALPHA_DIR = "./Result_alpha/checkpoints/BERT-Pretrain-common-MAA-NGPUs/XXXX_XXXXXX"
+BETA_DIR  = "./Result_beta/checkpoints/Pretrain/XXXX_XXXXXX"
+ALPHA_DIR = "./Result_alpha/checkpoints/Pretrain/XXXX_XXXXXX"
 
 # tokenizer 目录保持与你之前一致
 TOKENIZER_DIR = BETA_DIR

@@ -51,7 +51,7 @@ After training completes, the pre-trained Roformer models will be saved in `../R
 We provide ready-to-use pretrained RoFormer encoders for TCR α and β chains via Zenodo (https://doi.org/10.5281/zenodo.18706462). You can directly download the pretrained model folders and use them to encode new TCR sequences independently of the full TCRBinder model.
 
 ### Download Pretrained Encoders
-You need to download the pre-trained RoFormer model folders from Zenodo (https://doi.org/10.5281/zenodo.17242652), including:
+You need to download the pre-trained RoFormer model folders from Zenodo (https://doi.org/10.5281/zenodo.18706462), including:
 - `../Result_alpha/checkpoints/Pretrain/XXXX_XXXXXX` (TCR α encoder)
 - `../Result_beta/checkpoints/Pretrain/XXXX_XXXXXX` (TCR β encoder)
 

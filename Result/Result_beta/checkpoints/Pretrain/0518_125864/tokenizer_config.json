@@ -1,0 +1,15 @@
+{
+  "cls_token": "*",
+  "do_basic_tokenize": true,
+  "do_lower_case": false,
+  "mask_token": ".",
+  "model_max_len": 128.0,
+  "never_split": null,
+  "pad_token": "$",
+  "padding_side": "right",
+  "sep_token": "|",
+  "strip_accents": null,
+  "tokenize_chinese_chars": false,
+  "tokenizer_class": "BertTokenizer",
+  "unk_token": "?"
+}

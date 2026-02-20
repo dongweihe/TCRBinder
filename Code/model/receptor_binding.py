@@ -16,17 +16,7 @@ class BERTBinding(BaseModel):
 
             nn.Linear(in_features=emb_dim, out_features=1)
         )
-        # self.binding_predict = nn.Sequential(
-        #     nn.Linear(in_features=32, out_features=32*2),
-        #     nn.Tanh(),
-        #     nn.Linear(in_features=32*2, out_features=32*4),
-        #     nn.Tanh(),
-        #     nn.Linear(in_features=32*4, out_features=32*2),
-        #     nn.Tanh(),
-        #     nn.Linear(in_features=32*2, out_features=32),
-        #     nn.Tanh(),
-        #     nn.Linear(in_features=32, out_features=1)
-        # )
+      
 
 
     def forward(self, epitope, receptor):

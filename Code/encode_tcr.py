@@ -12,7 +12,7 @@ import torch
 from transformers import AutoModel, BertTokenizer
 
 
-INPUT_CSV = "./XXXXXX.csv"
+INPUT_CSV = "./PHT.csv"
 
 ALPHA_COL = "TCR_Alpha"
 BETA_COL  = "TCR_Beta"
@@ -21,10 +21,9 @@ ID_COL    = "ID"
 ENCODE_ALPHA = True
 ENCODE_BETA  = True
 
-BETA_DIR  = "./Result_beta/checkpoints/Pretrain/XXXX_XXXXXX"
-ALPHA_DIR = "./Result_alpha/checkpoints/Pretrain/XXXX_XXXXXX"
+BETA_DIR  = "./Result_beta/checkpoints/Pretrain/0518_125864"
+ALPHA_DIR = "./Result_alpha/checkpoints/Pretrain/0518_029163"
 
-# tokenizer 目录保持与你之前一致
 TOKENIZER_DIR = BETA_DIR
 
 OUT_PREFIX = "./Standalone_TCR_Embeddings/tcr_embeddings"
@@ -132,7 +131,7 @@ def encode_column(
 
     keep_idx = [i for i, s in enumerate(seqs) if s is not None]
     if len(keep_idx) == 0:
-        raise ValueError(f"列 {col} 没有可用序列")
+        raise ValueError(f"{col} no seq")
 
     keep_seqs = [seqs[i] for i in keep_idx]
 
@@ -151,11 +150,11 @@ def encode_column(
 
 def main():
     if POOLING not in ("cls", "mean"):
-        raise ValueError("POOLING 只能是 'cls' 或 'mean'")
+        raise ValueError("POOLING only 'cls' or 'mean'")
     if (not ENCODE_ALPHA) and (not ENCODE_BETA):
-        raise ValueError("ENCODE_ALPHA 和 ENCODE_BETA 不能同时为 False")
+        raise ValueError("ENCODE_ALPHA and ENCODE_BETA Cant simultaneously be False")
     if not os.path.exists(INPUT_CSV):
-        raise FileNotFoundError(f"找不到输入文件：{INPUT_CSV}")
+        raise FileNotFoundError(f"Input file not found：{INPUT_CSV}")
 
     ensure_dir(OUT_PREFIX)
     device = torch.device(DEVICE)
@@ -172,7 +171,7 @@ def main():
 
     if ENCODE_ALPHA:
         if ALPHA_COL not in df.columns:
-            raise ValueError(f"缺少列：{ALPHA_COL}")
+            raise ValueError(f"missing column：{ALPHA_COL}")
         alpha_model = load_encoder(ALPHA_DIR, device)
         alpha_emb, alpha_seqs = encode_column(df, ALPHA_COL, tokenizer, alpha_model, device, MAX_LENGTH, BATCH_SIZE, POOLING, FP16)
         np.save(OUT_PREFIX + ".alpha.npy", alpha_emb)
@@ -180,7 +179,7 @@ def main():
 
     if ENCODE_BETA:
         if BETA_COL not in df.columns:
-            raise ValueError(f"缺少列：{BETA_COL}")
+            raise ValueError(f"missing column：{BETA_COL}")
         beta_model = load_encoder(BETA_DIR, device)
         beta_emb, beta_seqs = encode_column(df, BETA_COL, tokenizer, beta_model, device, MAX_LENGTH, BATCH_SIZE, POOLING, FP16)
         np.save(OUT_PREFIX + ".beta.npy", beta_emb)
@@ -188,13 +187,12 @@ def main():
 
     if SAVE_PAIRED:
         if (alpha_emb is None) or (beta_emb is None):
-            raise ValueError("SAVE_PAIRED=True 时必须同时编码 alpha 和 beta")
+            raise ValueError("SAVE_PAIRED=True，Alpha and Beta must be encoded")
         paired = np.concatenate([alpha_emb, beta_emb], axis=1).astype(np.float32)
         np.save(OUT_PREFIX + ".paired.npy", paired)
 
     meta.to_csv(OUT_PREFIX + ".meta.csv", index=False)
 
-    # run 配置留着，方便你发给审稿人/用户复现
     run_cfg = {
         "INPUT_CSV": INPUT_CSV,
         "OUT_PREFIX": OUT_PREFIX,

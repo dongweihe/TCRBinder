@@ -5,7 +5,7 @@
     "dataset": {
         "type": "PretrainDataset",
         "args":{
-            "seq_dir": "../ProcessedData/CDR3_Alpha.csv",
+            "seq_dir": "../ProcessedData/Alpha.csv",
             "token_length_list": "2,3",
             "vocab_dir": "../ProcessedData/vocab/beta-2-3.csv",
             "seed": 0,

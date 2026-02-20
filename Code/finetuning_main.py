@@ -100,7 +100,6 @@ def main(config):
     os.makedirs(hla_bert_save_dir, exist_ok=True)
     model.HLAModel.save_pretrained(hla_bert_save_dir)
 
-    # 测试集结果
     test_metrics, test_output = trainer.test(tcr_tokenizer=tcr_tokenizer,
                                              antigen_tokenizer=antigen_tokenizer,
                                              hla_tokenizer=hla_tokenizer)

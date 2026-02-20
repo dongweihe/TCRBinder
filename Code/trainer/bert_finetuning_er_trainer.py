@@ -202,7 +202,7 @@ class BERTERTrainer(BaseTrainer):
                                 'hla': [v for l in result_dict['hla'] for v in l],
                                 'y_true': list(y_true.flatten()),
                                 'y_pred': list(y_pred.flatten())})
-        test_df.to_csv(join(self.config.log_dir, 'donor4_test_result.csv'), index=False)
+        test_df.to_csv(join(self.config.log_dir, 'result.csv'), index=False)
 
         return test_metrics, result_dict
 

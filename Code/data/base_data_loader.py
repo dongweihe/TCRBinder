@@ -17,7 +17,6 @@ class BaseDataLoader(DataLoader):
         self.batch_idx = 0
         self.n_samples = len(dataset)
 
-        # 获取 train/valid/test 的 sampler
         self.sampler, self.valid_sampler, self.test_sampler = self._split_sampler()
 
         self.init_kwargs = {
@@ -35,8 +34,6 @@ class BaseDataLoader(DataLoader):
         np.random.seed(self.seed)
         np.random.shuffle(idx_full)
 
-        # 特殊情况：validation_split=0 且 test_split=0
-        # → 整个数据集都作为 test
         if self.validation_split == 0 and self.test_split == 0:
             train_idx = []
             valid_idx = []
@@ -60,7 +57,6 @@ class BaseDataLoader(DataLoader):
         valid_sampler = SubsetRandomSampler(valid_idx)
         test_sampler = SubsetRandomSampler(test_idx)
 
-        # turn off shuffle option which is mutually exclusive with sampler
         self.shuffle = False
         self.n_samples = len(train_idx)
 

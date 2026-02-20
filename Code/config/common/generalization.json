@@ -10,7 +10,7 @@
             "validation_split": 0,
             "test_split": 0,
             "num_workers": 8,
-            "data_dir": "../donor1.csv",
+            "data_dir": "../General.csv",
             "tcr_vocab_dir": "../ProcessedData/vocab/beta-2-3.csv",
             
             "tcr_tokenizer_dir": "/data/coding/TCRBinder-main/Result_beta/checkpoints/Pretrain/XXXX-XXXXXX",
@@ -24,11 +24,10 @@
       "alpha_seq_name": "TCR_Alpha",
       "hla_seq_name": "HLA",
             "label_name":"frequence",
-            "beta_max_len": 120,
-            "alpha_max_len": 120,
-            "antigen_max_len": 12,
-	    "hla_max_len": 34,
-            
+            "beta_max_len": 130,
+            "alpha_max_len": 130,
+            "antigen_max_len": 13,
+	        "hla_max_len": 34,
             "test_tcrs": 1,
             "shuffle": false
         }
@@ -69,7 +68,7 @@
     "trainer": {
         "epochs": 1,
         
-        "save_dir": "../Result_TCR_eval/",
+        "save_dir": "../TCR_general/",
         "save_period": 50,
         "verbosity": 2,
         "logging_steps":25,

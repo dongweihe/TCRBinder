@@ -1,0 +1,7 @@
+{
+  "cls_token": "*",
+  "mask_token": ".",
+  "pad_token": "$",
+  "sep_token": "|",
+  "unk_token": "?"
+}

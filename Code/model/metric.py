@@ -253,6 +253,36 @@ def roc_auc(y_pred, y_true):
     """
     return metrics.roc_auc_score(y_score=y_pred, y_true=y_true)
 
+
+def auprc(y_pred, y_true):
+    """Area under Precision-Recall curve (AUPR).
+
+    Matches the AUPR metric reported in the TCRBinder paper (e.g. 0.791 on the
+    PHT benchmark). Uses the sklearn PR-curve + trapezoidal rule rather than
+    ``average_precision_score`` to exactly reproduce the convention used in
+    ``generalization.py``.
+    """
+    y_pred = np.asarray(y_pred).flatten()
+    y_true = np.asarray(y_true).flatten()
+    precision, recall_, _ = metrics.precision_recall_curve(y_true, y_pred)
+    return metrics.auc(recall_, precision)
+
+
+def f1_score(y_pred, y_true):
+    """Binary F1-score reported in the paper (S1/S2/S3/S4 Tables)."""
+    y_pred = np.asarray(y_pred).flatten()
+    y_true = np.asarray(y_true).flatten()
+    return metrics.f1_score(y_true=y_true, y_pred=y_pred.round())
+
+
+def specificity(y_pred, y_true):
+    """Specificity (TNR) reported in the paper."""
+    y_pred = np.asarray(y_pred).flatten()
+    y_true = np.asarray(y_true).flatten()
+    tn, fp, fn, tp = metrics.confusion_matrix(y_true, y_pred.round(), labels=[0, 1]).ravel()
+    denom = tn + fp
+    return tn / denom if denom > 0 else 0.0
+
 class Seq2Seq_metrics(object):
     def __init__(self, 
                  logger, 

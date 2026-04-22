@@ -4,6 +4,7 @@ import os
 
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 
+# Ensure the module-level `os` stays importable after sys.path manipulation.
 import torch
 import numpy as np
 import pandas as pd
@@ -27,18 +28,15 @@ class TCR_Antigen_Dataset_AbDab(BaseDataLoader):
                  data_dir,
                  tcr_vocab_dir,
                  tcr_tokenizer_dir,
+                 antigen_tokenizer_dir=None,
                  tokenizer_name='common',
-                 # receptor_tokenizer_name='common',
                  token_length_list='2,3',
-                 # receptor_token_length_list='2,3',
                  antigen_seq_name='antigen',
                  beta_seq_name='TCR_Beta',
                  alpha_seq_name='TCR_Alpha',
                  hla_seq_name='HLA',
                  label_name='Label',
-                 # receptor_seq_name='beta',
                  test_tcrs=100,
-                 # neg_ratio=1.0,
                  shuffle=True,
                  antigen_max_len=None,
                  hla_max_len=None,
@@ -64,11 +62,14 @@ class TCR_Antigen_Dataset_AbDab(BaseDataLoader):
 
         self.pair_df = self._create_pair()
 
+        # TCR α / β use the project-specific UAA tokenizer (paper Methods,
+        # "Pre-training and Task-specific Adaptation"). Antigen and HLA use the
+        # ESM2 tokenizer (paper Methods, "ESM2-based Protein Representation").
         self.BetaTokenizer = get_tokenizer(tokenizer_name=tokenizer_name,
-                                            add_hyphen=False,
-                                            logger=self.logger,
-                                            vocab_dir=tcr_vocab_dir,
-                                            token_length_list=token_length_list)
+                                           add_hyphen=False,
+                                           logger=self.logger,
+                                           vocab_dir=tcr_vocab_dir,
+                                           token_length_list=token_length_list)
         self.beta_tokenizer = self.BetaTokenizer.get_bert_tokenizer(
             max_len=self.beta_max_len,
             tokenizer_dir=tcr_tokenizer_dir)
@@ -82,31 +83,23 @@ class TCR_Antigen_Dataset_AbDab(BaseDataLoader):
             max_len=self.alpha_max_len,
             tokenizer_dir=tcr_tokenizer_dir)
 
-        self.AntigenTokenizer = get_tokenizer(tokenizer_name=tokenizer_name,
-                                              add_hyphen=False,
-                                              logger=self.logger,
-                                              vocab_dir=tcr_vocab_dir,
-                                              token_length_list=token_length_list)
-        self.antigen_tokenizer = self.AntigenTokenizer.get_bert_tokenizer(
-            max_len=self.antigen_max_len,
-            tokenizer_dir=tcr_tokenizer_dir)
+        # Keep a reference to the TCR split function for the dataset below; the
+        # antigen/HLA ESM2 tokenizers do NOT need a custom split function.
+        self.AntigenTokenizer = self.BetaTokenizer
 
-        self.HLATokenizer = get_tokenizer(tokenizer_name=tokenizer_name,
-                                          add_hyphen=False,
-                                          logger=self.logger,
-                                          vocab_dir=tcr_vocab_dir,
-                                          token_length_list=token_length_list)
-        self.hla_tokenizer = self.HLATokenizer.get_bert_tokenizer(
-            max_len=self.hla_max_len,
-            tokenizer_dir=tcr_tokenizer_dir)
-
-        esm_dir = '/data/coding/TCRBinder-main/Code/esm2/esm2_150m/'
-
-        self.antigen_tokenizer = AutoTokenizer.from_pretrained(esm_dir, cache_dir="../esm2/esm2_150m/",
-                                                               max_len=self.antigen_max_len)
-
-        self.hla_tokenizer = AutoTokenizer.from_pretrained(esm_dir, cache_dir="../esm2/esm2_150m/",
-                                                           max_len=self.hla_max_len)
+        esm_dir = os.environ.get("TCRBINDER_ESM2_DIR", antigen_tokenizer_dir)
+        if esm_dir is None:
+            raise ValueError(
+                "ESM2 tokenizer directory is required. Set it via the "
+                "'antigen_tokenizer_dir' data_loader arg or the "
+                "TCRBINDER_ESM2_DIR environment variable."
+            )
+        self.antigen_tokenizer = AutoTokenizer.from_pretrained(
+            esm_dir, max_len=self.antigen_max_len
+        )
+        self.hla_tokenizer = AutoTokenizer.from_pretrained(
+            esm_dir, max_len=self.hla_max_len
+        )
 
         dataset = self._get_dataset(pair_df=self.pair_df)
         super().__init__(dataset, batch_size, seed, shuffle, validation_split, test_split,
@@ -149,34 +142,15 @@ class TCR_Antigen_Dataset_AbDab(BaseDataLoader):
         )
         return abag_dataset
 
-    def _split_dataset(self):
-        # if exists(join(self.neg_pair_save_dir, 'unseen_tcrs-seed-'+str(self.seed)+'.csv')):
-        #     test_pair_df = pd.read_csv(join(self.neg_pair_save_dir, 'unseen_tcrs-seed-'+str(self.seed)+'.csv'))
-        #     self.logger.info(f'Loading created unseen tcrs for test with shape {test_pair_df.shape}')
-
-        tcr_list = list(set(self.pair_df['tcr']))
-        selected_tcr_index_list = self.rng.integers(len(tcr_list), size=self.test_tcrs)
-        self.logger.info(f'Select {self.test_tcrs} from {len(tcr_list)} tcr')
-        selected_tcrs = [tcr_list[i] for i in selected_tcr_index_list]
-        test_pair_df = self.pair_df[self.pair_df['tcr'].isin(selected_tcrs)]
-        # test_pair_df.to_csv(join(self.neg_pair_save_dir, 'unseen_tcrs-seed-'+str(self.seed)+'.csv'), index=False)
-
-        selected_tcrs = list(set(test_pair_df['tcr']))
-        train_valid_pair_df = self.pair_df[~self.pair_df['tcr'].isin(selected_tcrs)]
-
-        self.logger.info(
-            f'{len(train_valid_pair_df)} pairs for train and valid and {len(test_pair_df)} pairs for test.')
-
-        return train_valid_pair_df, test_pair_df
-
     def _create_pair(self):
         pair_df = pd.read_csv(self.data_dir)
 
         if self.shuffle:
-            pair_df = pair_df.sample(frac=1).reset_index(drop=True)
-            self.logger.info("Shuffling dataset")
+            # Deterministic shuffle so that the upstream random split
+            # (np.random.seed-based) remains reproducible.
+            pair_df = pair_df.sample(frac=1, random_state=self.seed).reset_index(drop=True)
+            self.logger.info("Shuffling dataset (deterministic, random_state=seed)")
         self.logger.info(f"There are {len(pair_df)} samples")
-        # pair_df = pair_df.sample(n=3680, random_state=42).reset_index(drop=True)
         return pair_df
 
     def _load_seq_pairs(self):
@@ -233,18 +207,21 @@ class AbAGDataset_CovAbDab(Dataset):
     def __getitem__(self, i):
         beta, alpha, antigen, hla = self.beta_seqs[i], self.alpha_seqs[i], self.antigen_seqs[i], self.hla_seqs[i]
         label = self.labels[i]
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+        # IMPORTANT: keep tensors on CPU here. The trainer moves them to the
+        # correct device. Moving tensors to CUDA inside Dataset.__getitem__ is
+        # incompatible with DataLoader num_workers > 0 (spawn/fork workers
+        # cannot re-initialize CUDA contexts) and inflates GPU memory.
         beta_tensor = self.tcr_tokenizer(self._insert_whitespace(self.tcr_split_fun(beta)),
-                                               padding="max_length",
-                                               max_length=self.tcr_max_len,
-                                               truncation=True,
-                                               return_tensors="pt")
+                                         padding="max_length",
+                                         max_length=self.tcr_max_len,
+                                         truncation=True,
+                                         return_tensors="pt")
         alpha_tensor = self.tcr_tokenizer(self._insert_whitespace(self.tcr_split_fun(alpha)),
-                                               padding="max_length",
-                                               max_length=self.tcr_max_len,
-                                               truncation=True,
-                                               return_tensors="pt")
+                                          padding="max_length",
+                                          max_length=self.tcr_max_len,
+                                          truncation=True,
+                                          return_tensors="pt")
         antigen_tensor = self.antigen_tokenizer(antigen,
                                                 padding="max_length",
                                                 max_length=self.antigen_max_len,
@@ -256,17 +233,12 @@ class AbAGDataset_CovAbDab(Dataset):
                                         truncation=True,
                                         return_tensors="pt")
 
-        label_tensor = torch.FloatTensor(np.atleast_1d(label)).to(device)
+        label_tensor = torch.FloatTensor(np.atleast_1d(label))
 
-        beta_tensor = {k: v.to(device) for k, v in beta_tensor.items()}
-        alpha_tensor = {k: v.to(device) for k, v in alpha_tensor.items()}
-        antigen_tensor = {k: v.to(device) for k, v in antigen_tensor.items()}
-        hla_tensor = {k: v.to(device) for k, v in hla_tensor.items()}
-
-        beta_tensor = {k: torch.squeeze(v) for k, v in beta_tensor.items()}
-        alpha_tensor = {k: torch.squeeze(v) for k, v in alpha_tensor.items()}
-        antigen_tensor = {k: torch.squeeze(v) for k, v in antigen_tensor.items()}
-        hla_tensor = {k: torch.squeeze(v) for k, v in hla_tensor.items()}
+        beta_tensor = {k: torch.squeeze(v, dim=0) for k, v in beta_tensor.items()}
+        alpha_tensor = {k: torch.squeeze(v, dim=0) for k, v in alpha_tensor.items()}
+        antigen_tensor = {k: torch.squeeze(v, dim=0) for k, v in antigen_tensor.items()}
+        hla_tensor = {k: torch.squeeze(v, dim=0) for k, v in hla_tensor.items()}
 
         return beta_tensor, alpha_tensor, antigen_tensor, hla_tensor, label_tensor
 
@@ -463,32 +435,12 @@ class TCR_Antigen_Dataset_4_input(BaseDataLoader):
                                          logger=self.logger)
         return er_dataset
 
-    def _split_dataset(self):
-        # if exists(join(self.neg_pair_save_dir, 'unseen_tcrs-seed-'+str(self.seed)+'.csv')):
-        #     test_pair_df = pd.read_csv(join(self.neg_pair_save_dir, 'unseen_tcrs-seed-'+str(self.seed)+'.csv'))
-        #     self.logger.info(f'Loading created unseen tcrs for test with shape {test_pair_df.shape}')
-
-        tcr_list = list(set(self.pair_df['tcr']))
-        selected_tcr_index_list = self.rng.integers(len(tcr_list), size=self.test_tcrs)
-        self.logger.info(f'Select {self.test_tcrs} from {len(tcr_list)} tcr')
-        selected_tcrs = [tcr_list[i] for i in selected_tcr_index_list]
-        test_pair_df = self.pair_df[self.pair_df['tcr'].isin(selected_tcrs)]
-        # test_pair_df.to_csv(join(self.neg_pair_save_dir, 'unseen_tcrs-seed-'+str(self.seed)+'.csv'), index=False)
-
-        selected_tcrs = list(set(test_pair_df['tcr']))
-        train_valid_pair_df = self.pair_df[~self.pair_df['tcr'].isin(selected_tcrs)]
-
-        self.logger.info(
-            f'{len(train_valid_pair_df)} pairs for train and valid and {len(test_pair_df)} pairs for test.')
-
-        return train_valid_pair_df, test_pair_df
-
     def _create_pair(self):
         pair_df = pd.read_csv(self.data_dir)
 
         if self.shuffle:
-            pair_df = pair_df.sample(frac=1).reset_index(drop=True)
-            self.logger.info("Shuffling dataset")
+            pair_df = pair_df.sample(frac=1, random_state=self.seed).reset_index(drop=True)
+            self.logger.info("Shuffling dataset (deterministic, random_state=seed)")
         self.logger.info(f"There are {len(pair_df)} samples")
 
         return pair_df

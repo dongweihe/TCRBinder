@@ -149,6 +149,54 @@ def test(model, data_loader, tcr_tokenizer, antigen_tokenizer, hla_tokenizer, de
     return test_df
 
 
+def assert_no_leakage_with_train(
+    external_csv: str,
+    train_csv: str | None,
+    logger,
+    triple_cols=('TCR_Beta', 'TCR_Alpha', 'Antigen', 'HLA'),
+) -> None:
+    """Enforce the paper's guarantee that any (TCR, peptide, HLA) interaction
+    present in external validation sets is excluded from the training data.
+
+    The paper explicitly states (Methods, Datasets):
+        "any PHT interactions present in these external validation sets or
+         the SARS-CoV-2 dataset were strictly excluded from the construction
+         of the training and benchmark test datasets."
+
+    This function turns that sentence into a runnable assertion. It is a
+    no-op if ``train_csv`` is None or does not exist, so the script remains
+    usable even when the training CSV is not on disk.
+    """
+    if not train_csv or not os.path.exists(train_csv):
+        logger.warning(
+            f"Training CSV not found at '{train_csv}'; skipping the "
+            f"train/external-set overlap check. You should run this check "
+            f"before reporting any generalization numbers."
+        )
+        return
+    try:
+        ext = pd.read_csv(external_csv, usecols=list(triple_cols))
+        tr = pd.read_csv(train_csv, usecols=list(triple_cols))
+    except Exception as err:
+        logger.warning(f"Overlap check skipped ({err}).")
+        return
+
+    ext_keys = set(map(tuple, ext[list(triple_cols)].to_numpy()))
+    tr_keys = set(map(tuple, tr[list(triple_cols)].to_numpy()))
+    overlap = ext_keys & tr_keys
+    if overlap:
+        raise AssertionError(
+            f"Data leakage: {len(overlap)} PHT triples in '{external_csv}' "
+            f"also appear in the training set '{train_csv}'. Paper Methods "
+            f"requires strict exclusion. Remove them before evaluating."
+        )
+    logger.info(
+        f"Leakage check passed: 0 overlapping triples between "
+        f"'{external_csv}' ({len(ext_keys)} unique) and '{train_csv}' "
+        f"({len(tr_keys)} unique)."
+    )
+
+
 def main(config):
     logger = config.get_logger('generalization')
 
@@ -162,7 +210,13 @@ def main(config):
 
     config['data_loader']['args']['logger'] = logger
 
-    config['data_loader']['args']['data_dir'] = "../unseen.csv"
+    cfg_dict = config.config if hasattr(config, 'config') else {}
+    external_csv = cfg_dict.get('external_data_dir', '../unseen.csv')
+    config['data_loader']['args']['data_dir'] = external_csv
+
+    train_csv = cfg_dict.get('train_data_dir', None)
+    assert_no_leakage_with_train(external_csv, train_csv, logger)
+
     data_loader = config.init_obj('data_loader', module_data)
 
     tcr_tokenizer = data_loader.get_tcr_tokenizer()

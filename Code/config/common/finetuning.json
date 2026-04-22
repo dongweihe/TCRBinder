@@ -8,8 +8,8 @@
         "args":{
             "seed": 7,
             "batch_size": 16,
-            "validation_split": 0.1,
-            "test_split": 0.1,
+            "validation_split": 0.2,
+            "test_split": 0.2,
             "num_workers": 8,
             "data_dir": "../PHT.csv",
             "tcr_vocab_dir": "../ProcessedData/vocab/beta-2-3.csv",
@@ -54,7 +54,9 @@
     "metrics": [
         "accuracy",
         "recall",
-        "roc_auc"
+        "roc_auc",
+        "auprc",
+        "f1_score"
     ],
     "lr_scheduler": {
         "type": "StepLR",
@@ -70,7 +72,7 @@
         "save_period": 200,
         "verbosity": 2,
         "logging_steps": 25,
-        "monitor": "min val_loss",
+        "monitor": "max val_roc_auc",
         "early_stop": 5,
 
         "tensorboard": true

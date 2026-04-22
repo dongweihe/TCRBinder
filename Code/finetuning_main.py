@@ -49,18 +49,35 @@ def main(config):
     model.AlphaModel.to(device)
     model.AntigenModel.to(device)
     model.HLAModel.to(device)
-    BERT_params = list(map(id, model.BetaModel.parameters())) + list(map(id, model.AlphaModel.parameters())) + list(map(id, model.AntigenModel.parameters())) + list(map(id, model.HLAModel.parameters()))
-    base_params = filter(lambda p: id(p) not in BERT_params, model.parameters())
+    # Paper: "Only the final layer parameters are fine-tuned during training".
+    # Encoder backbones are frozen in model.__init__; here we group parameters
+    # so that (i) only trainable (requires_grad=True) encoder parameters use
+    # BERT_lr, and (ii) all other trainable parameters (MFCNN + MLP head) use
+    # the base lr.
+    encoder_ids = (
+        set(map(id, model.BetaModel.parameters()))
+        | set(map(id, model.AlphaModel.parameters()))
+        | set(map(id, model.AntigenModel.parameters()))
+        | set(map(id, model.HLAModel.parameters()))
+    )
+    encoder_trainable = [p for p in model.parameters() if id(p) in encoder_ids and p.requires_grad]
+    base_trainable = [p for p in model.parameters() if id(p) not in encoder_ids and p.requires_grad]
+
+    n_total = sum(p.numel() for p in model.parameters())
+    n_trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    logger.info(
+        f"Fine-tuning parameter budget: {n_trainable:,}/{n_total:,} trainable "
+        f"({n_trainable / max(n_total, 1):.2%}); encoder-trainable tensors={len(encoder_trainable)}, "
+        f"head-trainable tensors={len(base_trainable)}."
+    )
 
     BERT_lr = config["optimizer"]["args"]["BERT_lr"]
     lr = config["optimizer"]["args"]["lr"]
     weight_decay = config["optimizer"]["args"]["weight_decay"]
-    optimizer = torch.optim.AdamW(
-        [{'params': base_params},
-         {'params': model.BetaModel.parameters(), 'lr': BERT_lr},
-         {'params': model.AlphaModel.parameters(), 'lr': BERT_lr},
-         {'params': model.AntigenModel.parameters(), 'lr': BERT_lr},
-         {'params': model.HLAModel.parameters(), 'lr': BERT_lr}], lr=lr, weight_decay=weight_decay)
+    param_groups = [{'params': base_trainable}]
+    if len(encoder_trainable) > 0:
+        param_groups.append({'params': encoder_trainable, 'lr': BERT_lr})
+    optimizer = torch.optim.AdamW(param_groups, lr=lr, weight_decay=weight_decay)
 
     # get function handles of loss and metrics
     criterion = getattr(module_loss, config['loss'])

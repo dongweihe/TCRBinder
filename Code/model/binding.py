@@ -6,6 +6,30 @@ import torch.nn.functional as F
 from transformers import BertModel, AutoModel, RoFormerModel
 
 
+def _freeze_backbone_keep_last_layer(encoder: nn.Module) -> None:
+    """Freeze all encoder parameters except the final transformer layer and pooler.
+
+    Implements the paper's fine-tuning protocol
+    ("Only the final layer parameters are fine-tuned during training to
+    balance adaptation and generalization.", Methods / Roformer section).
+
+    Works for any HuggingFace encoder that exposes ``encoder.layer`` as an
+    ``nn.ModuleList`` (BERT / RoFormer / ESM2 all do).
+    """
+    for p in encoder.parameters():
+        p.requires_grad = False
+
+    inner = getattr(encoder, "encoder", None)
+    if inner is not None and hasattr(inner, "layer") and len(inner.layer) > 0:
+        for p in inner.layer[-1].parameters():
+            p.requires_grad = True
+
+    pooler = getattr(encoder, "pooler", None)
+    if pooler is not None:
+        for p in pooler.parameters():
+            p.requires_grad = True
+
+
 # beta, aphla, MHC, antigen
 
 class BERTBinding_AbDab_cnn(nn.Module):
@@ -17,6 +41,9 @@ class BERTBinding_AbDab_cnn(nn.Module):
                                                       cache_dir="../esm2")
         self.HLAModel = AutoModel.from_pretrained(hla_dir, output_hidden_states=True, return_dict=True,
                                                   cache_dir="../esm2")
+
+        for encoder in (self.BetaModel, self.AlphaModel, self.AntigenModel, self.HLAModel):
+            _freeze_backbone_keep_last_layer(encoder)
 
         self.cnn1 = MF_CNN(in_channel=120)
         self.cnn2 = MF_CNN(in_channel=120)
@@ -57,6 +84,9 @@ class BERTBinding_biomap_cnn(nn.Module):
         self.AntigenModel = AutoModel.from_pretrained(antigen_dir, output_hidden_states=True, return_dict=True,
                                                       cache_dir="../esm2")
 
+        for encoder in (self.BetaModel, self.AlphaModel, self.AntigenModel):
+            _freeze_backbone_keep_last_layer(encoder)
+
         self.cnn1 = MF_CNN(in_channel=170)
         self.cnn2 = MF_CNN(in_channel=170)
         self.cnn3 = MF_CNN(in_channel=512, hidden_size=76)
@@ -92,6 +122,9 @@ class BERTBinding_4_input_cnn(nn.Module):
         self.CDRModel_b = AutoModel.from_pretrained(PretrainModel_dir)
         self.CDRModel_c = AutoModel.from_pretrained(PretrainModel_dir)
         self.ABModel = AutoModel.from_pretrained(PretrainModel_dir, cache_dir="../esm2")
+
+        for encoder in (self.CDRModel_a, self.CDRModel_b, self.CDRModel_c, self.ABModel):
+            _freeze_backbone_keep_last_layer(encoder)
 
         self.cnn1 = MF_CNN(in_channel=18)
         self.cnn2 = MF_CNN(in_channel=18)

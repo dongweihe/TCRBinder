@@ -6,6 +6,7 @@ import pandas as pd
 from os.path import join
 from base import BaseTrainer
 from utility import inf_loop, MetricTracker
+from model.metric import macro_auc01
 
 
 class BERTERTrainer(BaseTrainer):
@@ -196,13 +197,26 @@ class BERTERTrainer(BaseTrainer):
         for met in self.metric_fns:
             test_metrics[met.__name__] = met(y_pred, y_true)
 
+        antigen_list = [v for l in result_dict['antigen'] for v in l]
+        try:
+            test_metrics['macro_auc01'] = macro_auc01(y_pred, y_true, antigen_list)
+        except Exception as err:  # pragma: no cover - defensive; metric is optional
+            self.logger.warning(f"Failed to compute macro_auc01: {err}")
+
+        self.logger.info('Test metrics: ' + ', '.join(
+            f'{k}={v:.4f}' for k, v in test_metrics.items()
+        ))
+
         test_df = pd.DataFrame({'tcr_a': [v for l in result_dict['tcr_a'] for v in l],
                                 'tcr_b': [v for l in result_dict['tcr_b'] for v in l],
-                                'antigen': [v for l in result_dict['antigen'] for v in l],
+                                'antigen': antigen_list,
                                 'hla': [v for l in result_dict['hla'] for v in l],
                                 'y_true': list(y_true.flatten()),
                                 'y_pred': list(y_pred.flatten())})
         test_df.to_csv(join(self.config.log_dir, 'result.csv'), index=False)
+
+        metrics_path = join(self.config.log_dir, 'test_metrics.csv')
+        pd.DataFrame([test_metrics]).to_csv(metrics_path, index=False)
 
         return test_metrics, result_dict
 

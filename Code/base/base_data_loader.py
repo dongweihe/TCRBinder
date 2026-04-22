@@ -1,13 +1,26 @@
 # -*- coding: utf-8 -*-
 
+import random
+
 import numpy as np
+import torch
 from torch.utils.data import DataLoader
 from torch.utils.data.dataloader import default_collate
 from torch.utils.data.sampler import SubsetRandomSampler
 
 
+def _make_worker_init_fn(seed: int):
+    """Reseed numpy/random/torch inside every worker for reproducibility."""
+    def _init(worker_id: int) -> None:
+        s = seed + worker_id
+        np.random.seed(s)
+        random.seed(s)
+        torch.manual_seed(s)
+    return _init
+
+
 class BaseDataLoader(DataLoader):
-    def __init__(self, dataset, batch_size, seed, shuffle, validation_split, 
+    def __init__(self, dataset, batch_size, seed, shuffle, validation_split,
                  test_split, num_workers, collate_fn=default_collate):
         self.validation_split = validation_split
         self.test_split = test_split
@@ -19,12 +32,19 @@ class BaseDataLoader(DataLoader):
 
         self.sampler, self.valid_sampler, self.test_sampler = self._split_sampler()
 
+        generator = torch.Generator()
+        generator.manual_seed(seed)
+
         self.init_kwargs = {
             'dataset': dataset,
             'batch_size': batch_size,
             'shuffle': self.shuffle,
             'collate_fn': collate_fn,
-            'num_workers': num_workers
+            'num_workers': num_workers,
+            'pin_memory': torch.cuda.is_available(),
+            'worker_init_fn': _make_worker_init_fn(seed) if num_workers > 0 else None,
+            'generator': generator,
+            'persistent_workers': num_workers > 0,
         }
         super().__init__(sampler=self.sampler, **self.init_kwargs)
 

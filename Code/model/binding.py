@@ -50,11 +50,17 @@ class BERTBinding_AbDab_cnn(nn.Module):
         self.cnn3 = MF_CNN(in_channel=12, hidden_size=76)  # 56)
         self.cnn4 = MF_CNN(in_channel=34, hidden_size=76)
 
+        # Paper Methods: "residual connections, layer normalization, and dropout
+        # are used to stabilize optimization and enhance generalization."
+        # A conservative p=0.1 is applied in the MLP head only, to minimally
+        # affect the benchmark numbers reported in the paper.
         self.binding_predict = nn.Sequential(
             nn.Linear(in_features=128 * 4, out_features=emb_dim),
             nn.ReLU(),
+            nn.Dropout(p=0.1),
             nn.Linear(in_features=emb_dim, out_features=emb_dim),
             nn.ReLU(),
+            nn.Dropout(p=0.1),
             nn.Linear(in_features=emb_dim, out_features=1)
         )
 
@@ -94,8 +100,10 @@ class BERTBinding_biomap_cnn(nn.Module):
         self.binding_predict = nn.Sequential(
             nn.Linear(in_features=128 * 3, out_features=emb_dim),
             nn.ReLU(),
+            nn.Dropout(p=0.1),
             nn.Linear(in_features=emb_dim, out_features=emb_dim),
             nn.ReLU(),
+            nn.Dropout(p=0.1),
             nn.Linear(in_features=emb_dim, out_features=1)
         )
 
@@ -134,8 +142,10 @@ class BERTBinding_4_input_cnn(nn.Module):
         self.binding_predict = nn.Sequential(
             nn.Linear(in_features=128 * 4, out_features=emb_dim),
             nn.ReLU(),
+            nn.Dropout(p=0.1),
             nn.Linear(in_features=emb_dim, out_features=emb_dim),
             nn.ReLU(),
+            nn.Dropout(p=0.1),
             nn.Linear(in_features=emb_dim, out_features=1)
         )
 

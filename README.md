@@ -38,24 +38,13 @@ The raw interaction data were compiled from publicly accessible resources, inclu
 We separately pre-train two RoFormer models on TCR α chain and β chain sequences. Then, utilize pHLA-TCR (PHT) binding data to fine-tune these models, finally forming the TCRBinder model.
 
 ## Pre-training RoFormer Models
-You need to download the files “ProcessedData/Alpha.csv” and “ProcessedData/Beta.csv” from Zenodo (https://doi.org/10.5281/zenodo.18706462), and place them into the “/ProcessedData” folder.
+You need to download the files “ProcessedData/Alpha.csv” and “ProcessedData/Beta.csv” from Zenodo（https://doi.org/10.5281/zenodo.20808756）, and place them into the “/ProcessedData” folder.
 The commands for pre-training two RoFormer models on TCR α chain and β chain sequences are:
 ```
 python pretrain_main.py --config ./config/common/pretrain_alpha.json
 python pretrain_main.py --config ./config/common/pretrain_beta.json
 ```
 After training completes, the pre-trained Roformer models will be saved in `../Result_alpha/checkpoints/Pretrain/XXXX_XXXXXX` and `../Result_beta/checkpoints/Pretrain/XXXX_XXXXXX` folders, where `XXXX_XXXXXX` is the training timestamp.
-
-## Ready-to-use Pretrained TCR α and β Encoders (Standalone Encoding)
-
-We provide ready-to-use pretrained RoFormer encoders for TCR α and β chains via Zenodo (https://doi.org/10.5281/zenodo.18706462). You can directly download the pretrained model folders and use them to encode new TCR sequences independently of the full TCRBinder model.
-
-### Download Pretrained Encoders
-You need to download the pre-trained RoFormer model folders from Zenodo (https://doi.org/10.5281/zenodo.18706462), including:
-- `../Result_alpha/checkpoints/Pretrain/XXXX_XXXXXX` (TCR α encoder)
-- `../Result_beta/checkpoints/Pretrain/XXXX_XXXXXX` (TCR β encoder)
-
-where `XXXX_XXXXXX` is the training timestamp.
 
 ### Encode New TCR Sequences Independently
 We provide a standalone script `encode_tcr.py` for encoding new TCR sequences without running the full TCRBinder pipeline. You need to place `encode_tcr.py` in the project directory, and then set `INPUT_CSV`, `ALPHA_DIR`, `BETA_DIR`, and `OUT_PREFIX` in `encode_tcr.py` according to your local paths.
